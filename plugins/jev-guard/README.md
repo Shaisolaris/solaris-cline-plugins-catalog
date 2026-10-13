@@ -49,6 +49,10 @@ examples/               a ready-made support inbox guard
 - `node` 18 or newer on your `PATH`, for the guard page server.
 - A TypeSafe API key. Without one, nothing is checked; the log says so.
 
+## What leaves your machine
+
+In a guarded folder, the text of every checked tool result is sent to `api.typesafe.ai` (up to the first 60,000 characters). By default that includes web pages, MCP and other tool results, and the contents of files the agent reads or searches, such as source code, configs, and anything secret in them. If that is not acceptable, turn off "Files it reads" on the guard page (or leave `files` out of `sources` when setting up the guard). Flagged paragraphs are also written to `~/.cline/plugins/jev-guards/log.jsonl` on your machine.
+
 ## Install
 
 ```bash
