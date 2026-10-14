@@ -29,7 +29,7 @@ A Cline plugin that checks everything the agent reads (web pages, files, command
 | Ask me | The result with the flagged paragraphs removed, plus an instruction to stop and ask you before going on. |
 | Block it | The result with the flagged paragraphs removed, plus a notice saying what was removed. It carries on without them. |
 
-When several checks fire, the most severe action wins. Notices start with `[Jev guard: a safety check the user installed in this harness...]`, and the plugin's rule tells the agent those come from the harness, not from the content. Without that label, models treat the notice itself as a possible injection.
+When several checks fire, the most severe action wins. Notices start with `[Jev guard: a safety check the user installed in this harness...]` and reach the agent as Cline hook context (a `<hook_context source="PostToolUse">` block that tool output cannot fake). The plugin's rule tells the agent to trust a notice only in that block, so a web page or file that copies the label is treated as content, not as the harness. Without the label, models treat the notice itself as a possible injection.
 
 ## Layout
 
@@ -48,6 +48,10 @@ examples/               a ready-made support inbox guard
 - The [Cline CLI](https://docs.cline.bot) (tested on 3.0.64).
 - `node` 18 or newer on your `PATH`, for the guard page server.
 - A TypeSafe API key. Without one, nothing is checked; the log says so.
+
+## What leaves your machine
+
+In a guarded folder, the text of every checked tool result is sent to `api.typesafe.ai` (up to the first 60,000 characters). By default that includes web pages, MCP and other tool results, and the contents of files the agent reads or searches, such as source code, configs, and anything secret in them. If that is not acceptable, turn off "Files it reads" on the guard page (or leave `files` out of `sources` when setting up the guard). Flagged paragraphs are also written to `~/.cline/plugins/jev-guards/log.jsonl` on your machine.
 
 ## Install
 
@@ -100,7 +104,7 @@ To check a single text by hand: `is this email safe? <paste>` calls `jev_guard`.
 
 1. Setup. `setup_jev_guard` validates the policy and saves it to `~/.cline/plugins/jev-guards/policies/<name>.json`, with the current folder as its first folder. Running setup again for a guard that already exists, from another folder, adds that folder instead of moving the guard. It starts the page server if needed (a detached `node` process, so it outlives a one-shot run) and opens `http://127.0.0.1:4748`.
 2. Which policy applies. On every tool result, the hook takes the session folder (as a real path, so `/tmp` and `/private/tmp` match) and picks the policy listing the deepest folder that contains it. If none does, it falls back to the newest policy marked "every folder". If neither exists, nothing is checked.
-3. Which results get checked. Tools map to sources: `fetch_web_content` to web; `read_files` and `search_codebase` to files; `run_commands` to commands; anything else, such as MCP tools, to other. Tools that write (`editor`, `apply_patch`), this plugin's own tools, and results shorter than 20 characters are skipped. Only the result text is checked; the echo of the agent's own query is left out.
+3. Which results get checked. Tools map to sources: `fetch_web_content` to web; `read_files` and `search_codebase` to files; `run_commands` to commands; anything else, such as MCP tools, to other. Tools that write (`editor`, `apply_patch`), tools that return the user's own answer or a subagent's report (`ask_question`, `submit_and_exit`, `spawn_agent`, `team_*`), this plugin's own tools, and results shorter than 20 characters are skipped. Only the result text is checked; the echo of the agent's own query is left out.
 4. Chunking. The text is split into paragraphs. Paragraphs over 1,200 characters are split further, and fragments under 80 characters, such as menu items, join the paragraph before them. Each paragraph stays its own chunk, so blocking removes the bad paragraph and keeps the rest. Text past 60,000 characters is not checked, and the verdict records that.
 5. Asking Jev. Every check is asked about every chunk as its own yes/no question, with the chunk inside the question. Putting all chunks in shared state would let one bad chunk raise the score of every other one. Questions go out in batches of 40, up to 6 requests in parallel. A typical tool result took 0.4 to 0.9 seconds to check.
 6. Verdict. A check fires when any chunk's probability reaches its sensitivity threshold. The most severe action among the fired checks is applied (see [What each action does](#what-each-action-does)), and the check is logged to `~/.cline/plugins/jev-guards/log.jsonl`.

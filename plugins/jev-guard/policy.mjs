@@ -28,12 +28,13 @@ export const STARTER_CHECKS = [
 ];
 
 // Built-in Cline tools grouped by what they bring into the conversation. Tools that
-// write (editor, apply_patch) or belong to these plugins are never checked.
+// write (editor, apply_patch), belong to these plugins, or return the user's own
+// words or a subagent's report (ask_question, spawn_agent, team_*) are never checked.
 const SOURCE_BY_TOOL = { fetch_web_content: "web", read_files: "files", search_codebase: "files", run_commands: "commands" };
-const NEVER_CHECKED = new Set(["editor", "apply_patch", "ask_jev", "jev_guard", "setup_jev_guard", "jev_select", "list_skills", "skills"]);
+const NEVER_CHECKED = new Set(["editor", "apply_patch", "ask_jev", "jev_guard", "setup_jev_guard", "jev_select", "list_skills", "skills", "ask_question", "submit_and_exit", "spawn_agent"]);
 
 export function sourceOfTool(toolName) {
-	if (NEVER_CHECKED.has(toolName)) return undefined;
+	if (typeof toolName !== "string" || NEVER_CHECKED.has(toolName) || toolName.startsWith("team_")) return undefined;
 	return SOURCE_BY_TOOL[toolName] ?? "other";
 }
 

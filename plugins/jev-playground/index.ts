@@ -1,8 +1,5 @@
 import { createTool } from "@cline/core";
 import type { AgentPlugin } from "@cline/core";
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { executeJevRequest } from "./plugin-transport.mjs";
 import { normalizeRequest, validateRequest } from "./jev-core.mjs";
 import { EXAMPLE_INPUT, buildRequest, parsePasted, text, toFlat } from "./jev-flat.mjs";
@@ -25,69 +22,10 @@ const PLAYGROUND_NOTE = "The playground is open in the browser. The user edits t
 
 const RULE_TEXT = `Use ask_jev when the user explicitly requests a calibrated judgment, routing decision, classification, or Jev or System One call. When the user wants to explore, try what-ifs, tweak inputs, share with someone, or asks for a UI, call ask_jev with playground true to open the Jev playground instead of asking once. Do not activate this rule for every prompt or treat every prompt as a classification. The tool uses exactly three primitives: noul returns the probability of yes from 0 to 1; choice selects one of 2 to 255 named options and returns the option probabilities; score returns a probability-weighted position across 2 to 10 ordered levels. Question ids are code keys and are never sent to the model, so put every part of the meaning in the question text. A noul value of 0.5 means even odds, not medium intensity. Answers arrive as numbers and must never be invented. If the tool is unavailable, say so instead of answering in prose.`;
 
-// Console mode encodes every message as a System One request, for a workspace
-// you use only for classification. The default mode waits for a judgment ask.
-const CONSOLE_MODE = "console";
-const DEFAULT_MODE = "explicit";
-const DEFAULT_CONFIG_PATH = join(homedir(), ".cline", "plugins", "jev.config.json");
-
-const CONSOLE_RULE_TEXT = `Every user message on this harness is a situation to encode, not a chat to answer in prose. Turn it into a System One request and call ask_jev. Put the situation in facts and each judgment in questions. The tool uses exactly three primitives: noul returns the probability of yes from 0 to 1; choice selects one of 2 to 255 named options and returns the option probabilities; score returns a probability-weighted position across 2 to 10 ordered levels. Question ids are code keys and are never sent to the model, so put every part of the meaning in the question text. A noul value of 0.5 means even odds, not medium intensity. Ask several focused questions rather than one broad question; every question sees the same facts and they run in parallel. Reply with the envelope the tool returned, and nothing else. Never invent numbers. If the tool fails, say so instead of answering in prose.`;
-
-// Most specific first: an explicit override, then the workspace, then the shared file.
-function configCandidates(workspaceRoot: string | undefined) {
-	const paths = [];
-	const fromEnvironment = process.env.JEV_CONFIG;
-	if (typeof fromEnvironment === "string" && fromEnvironment.trim().length > 0) {
-		paths.push(fromEnvironment.trim());
-	}
-	if (typeof workspaceRoot === "string" && workspaceRoot.trim().length > 0) {
-		paths.push(join(workspaceRoot, ".cline", "jev.config.json"));
-	}
-	paths.push(DEFAULT_CONFIG_PATH);
-	return paths;
-}
-
-// Returns undefined when the file is absent or carries no mode, so a config that
-// only holds a key does not override the mode set elsewhere.
-function readModeFrom(path: string) {
-	let text;
-	try {
-		text = readFileSync(path, "utf8");
-	} catch (error) {
-		if (error?.code === "ENOENT") return undefined;
-		const message = error instanceof Error ? error.message : String(error);
-		throw new Error(`could not read ${path}: ${message}`);
-	}
-	const parsed = JSON.parse(text);
-	if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new Error(`${path} must contain a JSON object`);
-	}
-	const mode = parsed.mode;
-	return typeof mode === "string" && mode.trim().length > 0 ? mode.trim() : undefined;
-}
-
-function configuredMode(workspaceRoot: string | undefined) {
-	for (const path of configCandidates(workspaceRoot)) {
-		const mode = readModeFrom(path);
-		if (mode !== undefined) return mode;
-	}
-	return DEFAULT_MODE;
-}
-
-function ruleText(workspaceRoot: string | undefined) {
-	try {
-		return configuredMode(workspaceRoot) === CONSOLE_MODE ? CONSOLE_RULE_TEXT : RULE_TEXT;
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		console.warn(`[cline-jev] ${message}; using the default rule`);
-		return RULE_TEXT;
-	}
-}
-
 const plugin: AgentPlugin = {
 	name: "jev-playground",
 	manifest: { capabilities: ["tools", "rules"] },
-	setup(api, ctx) {
+	setup(api) {
 		api.registerTool(
 			createTool({
 				name: "ask_jev",
@@ -182,7 +120,7 @@ const plugin: AgentPlugin = {
 		);
 		api.registerRule({
 			id: "jev-system-one-harness",
-			content: ruleText(ctx?.workspaceInfo?.rootPath ?? process.cwd()),
+			content: RULE_TEXT,
 			source: "cline-jev",
 		});
 	},
