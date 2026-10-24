@@ -1,6 +1,6 @@
 {
   "name": "solaris-dev-shop",
-  "version": "0.64.0",
+  "version": "0.66.0",
   "private": true,
   "type": "module",
   "description": "61 Solaris specialist workflows and a chief-of-staff coordinator, with a bounded local intake tool.",
@@ -23,6 +23,6 @@
     ]
   },
   "dependencies": {
-    "solaris-dev-shop-cline": "0.64.0"
+    "solaris-dev-shop-cline": "0.66.0"
   }
 }
