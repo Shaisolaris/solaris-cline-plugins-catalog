@@ -4,10 +4,16 @@
 
 ## Install
 
-After the source package is published to npm and this entry is accepted into the official collection:
+From the official collection, once this entry is accepted:
 
 ```sh
 cline plugin install solaris-dev-shop
+```
+
+The published source package is available directly:
+
+```sh
+cline plugin install solaris-dev-shop-cline@0.66.0 --npm --cwd .
 ```
 
 For a local collection checkout:
@@ -34,6 +40,6 @@ Loading a workflow does not install or start Docker, fetch setup scripts, start 
 
 The product preserves 1,200 canonical source files and original notices. Source packages are MIT licensed; all third-party notices stay in the dependency. Publisher: Solaris Technologies, https://solaristek.com. Support: https://github.com/Shaisolaris/solaris-dev-shop-plugins/issues .
 
-## Pending publisher gate
+## Published source
 
-The exact 0.66.0 archive has been uploaded to npm staging and downloaded back with its reviewed hashes verified. It awaits npm's final publishing authentication and approval. This local entry has not been submitted and the catalog install keyword is not available. The verified direct public Git package remains independent of this catalog gate. No npm policy is weakened to permit Git or arbitrary URL dependencies.
+The complete source package is published at https://www.npmjs.com/package/solaris-dev-shop-cline/v/0.66.0 . Its public download matches the reviewed upload byte for byte. The official collection keyword becomes available when this entry is accepted. No npm policy is weakened to permit Git or arbitrary URL dependencies.
